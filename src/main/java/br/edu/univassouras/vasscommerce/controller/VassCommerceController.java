@@ -41,11 +41,6 @@ public class VassCommerceController {
         return service.listarProdutosDaCategoria(idcategoria);
     }
 
-    @GetMapping("/produto/{id}")
-    public Map<String, Object> buscarProduto(@PathVariable int id) {
-        return service.buscarProduto(id);
-    }
-
     @GetMapping("/cliente/{id}")
     public Cliente buscarCliente(@PathVariable int id) {
         return service.buscarCliente(id);

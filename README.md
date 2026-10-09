@@ -37,6 +37,8 @@ Também é possível abrir o projeto na IDE e executar a classe `VassCommerceApp
 | GET | `/categoria?nome=Informática` | Busca categorias pelo nome |
 | GET | `/categoria/{idcategoria}/produto` | Lista os produtos de uma categoria |
 | GET | `/produto/{id}` | Mostra os dados de um produto |
+| GET | `/produto?nome=mouse&valorMinimo=10&valorMaximo=100` | Busca produtos com filtros opcionais |
+| POST | `/produto` | Cria um produto validado |
 | GET | `/cliente/{id}` | Mostra os dados de um cliente |
 | GET | `/cliente/{idcliente}/formas-de-pagamento` | Lista os cartões ativos do cliente |
 | GET | `/cliente/{idcliente}/endereco` | Mostra o endereço do cliente |
@@ -52,6 +54,26 @@ curl "http://localhost:8080/categoria?nome=Informática"
 curl http://localhost:8080/produto/1
 curl http://localhost:8080/cliente/1/pedido
 ```
+
+Exemplo de criação:
+
+```bash
+curl -i -X POST http://localhost:8080/produto \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"Teclado mecânico","descricao":"Teclado USB","valorUnitario":249.90,"categoriaId":1}'
+```
+
+O `POST /produto` responde `201 Created` e informa a URL do novo recurso no header `Location`.
+Campos inválidos respondem `400 Bad Request` no formato `{"erro":"..."}`.
+
+## IoC/DI
+
+O `ProdutoController` depende somente da interface `ProdutoModel`, injetada por construtor.
+Há duas implementações Spring: `ProdutoModelMemoria` e `ProdutoModelSql`. A implementação
+selecionada atualmente é `produtoModelMemoria`, por `@Qualifier`. A implementação SQL é
+simulada e delega ao armazenamento em memória enquanto o projeto não utiliza um banco real.
+
+O checklist da etapa está em [`CHECKLIST.md`](CHECKLIST.md).
 
 ## Observações
 

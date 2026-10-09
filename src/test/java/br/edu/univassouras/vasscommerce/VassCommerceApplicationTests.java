@@ -6,7 +6,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -104,5 +107,36 @@ class VassCommerceApplicationTests {
     void deveRejeitarIdInvalido() throws Exception {
         mockMvc.perform(get("/produto/0"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deveCriarProdutoComInjecaoDoModel() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/produto")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"nome":"Teclado mecânico","descricao":"Teclado USB",
+                                "valorUnitario":249.90,"categoriaId":1}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", startsWith("/produto/")))
+                .andExpect(jsonPath("$.nome").value("Teclado mecânico"));
+    }
+
+    @Test
+    void devePadronizarErroDeValidacao() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/produto")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"nome\":\"\",\"descricao\":\"\",\"valorUnitario\":0,\"categoriaId\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erro").exists());
+    }
+
+    @Test
+    void deveBuscarProdutosComFiltro() throws Exception {
+        mockMvc.perform(get("/produto").param("nome", "mouse"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nome").value("Mouse sem fio"));
     }
 }
