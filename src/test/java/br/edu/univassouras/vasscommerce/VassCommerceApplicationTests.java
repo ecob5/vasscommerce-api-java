@@ -1,5 +1,7 @@
 package br.edu.univassouras.vasscommerce;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -9,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -19,6 +22,9 @@ class VassCommerceApplicationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void deveListarCategorias() throws Exception {
@@ -138,5 +144,34 @@ class VassCommerceApplicationTests {
         mockMvc.perform(get("/produto").param("nome", "mouse"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nome").value("Mouse sem fio"));
+    }
+
+    @Test
+    void deveIntegrarStateEObserverNoFluxoDoPedido() throws Exception {
+        String corpoCriacao = mockMvc.perform(post("/pedido"))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", startsWith("/pedido/")))
+                .andExpect(jsonPath("$.estado").value("AGUARDANDO_PAGAMENTO"))
+                .andExpect(jsonPath("$.historico.length()").value(0))
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode criado = objectMapper.readTree(corpoCriacao);
+        String id = criado.get("id").asText();
+
+        mockMvc.perform(post("/pedido/{id}/enviar", id))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.erro").value("não é possível enviar antes do pagamento"));
+
+        mockMvc.perform(post("/pedido/{id}/pagar", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("PAGO"))
+                .andExpect(jsonPath("$.situacaoPainel").value("PAGO"))
+                .andExpect(jsonPath("$.historico.length()").value(1))
+                .andExpect(jsonPath("$.notificacoes.length()").value(1));
+
+        mockMvc.perform(post("/pedido/{id}/enviar", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ENVIADO"))
+                .andExpect(jsonPath("$.historico.length()").value(2));
     }
 }

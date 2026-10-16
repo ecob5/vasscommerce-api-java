@@ -46,6 +46,11 @@ Também é possível abrir o projeto na IDE e executar a classe `VassCommerceApp
 | GET | `/estado` | Lista os estados |
 | GET | `/estado/{idestado}/cidade` | Lista as cidades de um estado |
 | GET | `/cliente/{idcliente}/pedido` | Lista os pedidos de um cliente |
+| POST | `/pedido` | Cria um pedido em `AGUARDANDO_PAGAMENTO` |
+| GET | `/pedido/{id}` | Consulta estado, painel, histórico e notificações |
+| POST | `/pedido/{id}/pagar` | Transição para `PAGO` |
+| POST | `/pedido/{id}/enviar` | Transição de `PAGO` para `ENVIADO` |
+| POST | `/pedido/{id}/cancelar` | Cancela quando o estado atual permite |
 
 ## Exemplos de consulta
 
@@ -74,6 +79,34 @@ selecionada atualmente é `produtoModelMemoria`, por `@Qualifier`. A implementa�
 simulada e delega ao armazenamento em memória enquanto o projeto não utiliza um banco real.
 
 O checklist da etapa está em [`CHECKLIST.md`](CHECKLIST.md).
+
+## Integração State + Observer
+
+O ciclo de vida de um pedido usa o padrão **State** para concentrar as regras de transição nas
+classes `AguardandoPagamento`, `Pago`, `Enviado` e `Cancelado`. O contexto `Pedido` delega a ação
+ao estado atual e efetiva a troca em um único método.
+
+O mesmo `Pedido` é o sujeito do padrão **Observer**. Depois da troca efetiva, ele publica um
+`EventoPedido` imutável para três observadores independentes:
+
+- `NotificadorCliente`: registra a mensagem destinada ao cliente;
+- `AuditoriaPedido`: mantém o histórico das transições;
+- `PainelAcompanhamento`: atualiza a situação exibida.
+
+Transições recusadas retornam `409 Conflict`, não alteram o estado e não geram notificação.
+
+Exemplo completo:
+
+```bash
+# cria o pedido e copie o id retornado
+curl -i -X POST http://localhost:8080/pedido
+
+curl -X POST http://localhost:8080/pedido/1001/pagar
+curl -X POST http://localhost:8080/pedido/1001/enviar
+curl http://localhost:8080/pedido/1001
+```
+
+O checklist específico está em [`CHECKLIST_STATE_OBSERVER.md`](CHECKLIST_STATE_OBSERVER.md).
 
 ## Observações
 
