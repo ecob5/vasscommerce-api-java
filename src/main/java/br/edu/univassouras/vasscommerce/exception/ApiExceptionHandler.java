@@ -1,6 +1,5 @@
 package br.edu.univassouras.vasscommerce.exception;
 
-import br.edu.univassouras.vasscommerce.pedido.state.TransicaoInvalidaException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,11 +31,5 @@ public class ApiExceptionHandler {
                 .map(erro -> erro.getField() + ": " + erro.getDefaultMessage())
                 .orElse("Dados inválidos.");
         return ResponseEntity.badRequest().body(new RespostaErro(mensagem));
-    }
-
-    @ExceptionHandler(TransicaoInvalidaException.class)
-    public ResponseEntity<RespostaErro> tratarTransicaoInvalida(TransicaoInvalidaException excecao) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new RespostaErro(excecao.getMessage()));
     }
 }
